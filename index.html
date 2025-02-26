@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简约RSS阅读器 - 轻松订阅和阅读您喜爱的内容</title>
+    <meta name="description" content="简约RSS阅读器是一个简洁、易用的RSS订阅工具，帮助您轻松管理和阅读感兴趣的网站内容。支持订阅源导入导出，界面清爽，操作便捷。">
+    <meta name="keywords" content="RSS阅读器,RSS订阅,RSS源,信息聚合,内容订阅,新闻阅读">
+    <meta name="author" content="简约RSS阅读器">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAB1klEQVR4AcXBgY3bMBAEwJn791K6lXSlVCt0K7FSqhW6lZQr3QrVCn8FjuFH0C85zszs7u3t7Y8xxhjGGGOM8f9Ya21Za/0G7u3tbQADGMAABjCAcef7+/vgzgAGMIABDGAAAxh3BjCAAQxgAAMYwLgzgAEMYAADGMAAxp0BDGAAAxjAAAYw7gxgAAMYwAAGMIBxZwADGMAABjCAAYw7AxjAAAYwgAEMYNwZwAAGMIABDGAA484ABjCAAQxgAAMYd8YYY4wxxhhjjPEVrLW2tbYB/AQwxhhjjDHGGGN8BWutLWB8f38f3BljjDHGGGOM8RWstbaBsdY2gAEMYAADGMAAxp0BDGAAAxjAAAYw7gxgAAMYwAAGMIBxZwADGMAABjCAAYw7AxjAAAYwgAEMYNwZwAAGMIABDGAA484ABjCAAQxgAAMYdwYwgAEMYAADGMC4M4ABDGAAAxjAAMadAQxgAAMYwAAGMO4MYAADGMAABjCAcWcAAxjAAAYwgAGMOwMYwAAGMIABDGDcGcAABjCAAQxgAOPOAAYwgAEMYAADGHcGMIABDGAAAxjAuDOAAQxgAAMYwADGnQEMYAADGMAABjDujDHGGGOMMcYY4ytYa21rrQ3gJ/gLvB5kGxYYPIQAAAAASUVORK5CYII=">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg navbar-dark">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#">简约RSS阅读器</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                    </ul>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-light" id="addFeedBtn">
+                            <i class="bi bi-plus-lg"></i> 添加
+                        </button>
+                        <button class="btn btn-sm btn-outline-light" id="importBtn">
+                            <i class="bi bi-upload"></i> 导入
+                        </button>
+                        <button class="btn btn-sm btn-outline-light" id="exportBtn">
+                            <i class="bi bi-download"></i> 导出
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <div class="feed-list-container">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0 d-flex align-items-center">
+                        <span id="rss-manage-title">订阅源</span>
+                        <button class="toggle-sidebar-btn btn btn-sm btn-outline-secondary d-md-block">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                    </h5>
+                    <button class="btn btn-sm btn-outline-secondary d-md-none" id="closeSidebarBtn">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group" id="feedList"></ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-container">
+            <div class="article-list-view">
+                <div class="card pull-to-refresh">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">文章列表</h5>
+                            <button class="btn btn-outline-secondary" id="refreshBtn">
+                                <i class="bi bi-arrow-clockwise"></i> 刷新
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group" id="articleList"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="article-detail-view">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <button class="btn btn-outline-secondary d-md-none" id="backToListBtn">
+                            <i class="bi bi-arrow-left"></i> 返回
+                        </button>
+                    </div>
+                    <div id="articleDetail"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加RSS源模态框 -->
+    <div class="modal fade" id="addFeedModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加RSS源</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addFeedForm">
+                        <div class="mb-3">
+                            <label for="feedName" class="form-label">名称</label>
+                            <input type="text" class="form-control" id="feedName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="feedUrl" class="form-label">URL</label>
+                            <input type="url" class="form-control" id="feedUrl" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" id="saveFeedBtn">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="article.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
