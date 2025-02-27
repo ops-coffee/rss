@@ -167,13 +167,6 @@ function showArticleDetail(article) {
     }
 }
 
-// 文章详情模块
-const ArticleDetail = {
-    cache: cacheArticle,
-    getFromCache: getCachedArticle,
-    show: showArticleDetail
-};
-
 // 返回文章列表（移动端）
 function backToList() {
     document.querySelector('.content-container').classList.remove('detail-view');
@@ -205,6 +198,8 @@ function isArticleRead(articleId) {
 
 // 初始化文章详情相关事件
 function initializeArticleDetail() {
+    let lastReadArticleId = null;
+
     // 点击文章链接时显示详情
     document.getElementById('articleList').addEventListener('click', (e) => {
         const listItem = e.target.closest('.list-group-item');
@@ -217,8 +212,17 @@ function initializeArticleDetail() {
             const article = getCachedArticle(articleId);
             if (!article) throw new Error('文章数据不存在');
             
-            // 标记文章为已读
+            // 在PC端，如果有上一篇已读文章，从列表中移除
+            if (window.innerWidth > 768 && lastReadArticleId) {
+                const lastReadArticle = document.querySelector(`[data-article-id="${lastReadArticleId}"]`);
+                if (lastReadArticle) {
+                    lastReadArticle.remove();
+                }
+            }
+
+            // 标记文章为已读并更新lastReadArticleId
             markArticleAsRead(articleId);
+            lastReadArticleId = articleId;
             
             showArticleDetail(article);
         } catch (error) {
@@ -228,18 +232,31 @@ function initializeArticleDetail() {
     });
 
     // 移动端返回按钮事件
-    document.getElementById('backToListBtn')?.addEventListener('click', backToList);
+    document.getElementById('backToListBtn')?.addEventListener('click', () => {
+        // 在移动端，返回时移除当前已读文章
+        if (lastReadArticleId) {
+            const lastReadArticle = document.querySelector(`[data-article-id="${lastReadArticleId}"]`);
+            if (lastReadArticle) {
+                lastReadArticle.remove();
+            }
+            lastReadArticleId = null;
+        }
+        backToList();
+    });
 }
 
-// 导出函数
+// 导出文章详情模块
 window.ArticleDetail = {
-    ...ArticleDetail,
+    cache: cacheArticle,
+    getFromCache: getCachedArticle,
+    show: showArticleDetail,
     isRead: isArticleRead,
-    getReadList: getReadArticles
+    getReadList: getReadArticles,
+    initialize: initializeArticleDetail,
+    backToList: backToList
 };
 
-// 导出文章详情模块
-window.ArticleDetail = ArticleDetail;
-
-// 添加初始化方法到ArticleDetail对象
-ArticleDetail.initialize = initializeArticleDetail;
+// 确保在DOM加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    window.ArticleDetail.initialize();
+});

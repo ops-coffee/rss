@@ -361,12 +361,19 @@ async function loadArticles(feed) {
 }
 
 // 渲染文章列表
-// 修改渲染文章列表函数
 function renderArticleList(feedName, articles) {
     const articleList = $('#articleList');
     articleList.empty();
 
-    articles.forEach(article => {
+    // 过滤掉已读的文章
+    const unreadArticles = articles.filter(article => !ArticleDetail.isRead(article.link));
+
+    if (unreadArticles.length === 0) {
+        articleList.html('<div class="text-center text-muted p-3">暂无未读文章</div>');
+        return;
+    }
+
+    unreadArticles.forEach(article => {
         // 创建一个干净的文章对象，只包含必要的字段
         const cleanArticle = {
             title: article.title?.trim() || '无标题',
