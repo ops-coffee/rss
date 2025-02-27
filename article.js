@@ -179,6 +179,30 @@ function backToList() {
     document.querySelector('.content-container').classList.remove('detail-view');
 }
 
+// 已读文章相关的常量
+const READ_ARTICLES_KEY = 'read_articles';
+
+// 获取已读文章列表
+function getReadArticles() {
+    const readArticles = localStorage.getItem(READ_ARTICLES_KEY);
+    return readArticles ? JSON.parse(readArticles) : [];
+}
+
+// 标记文章为已读
+function markArticleAsRead(articleId) {
+    const readArticles = getReadArticles();
+    if (!readArticles.includes(articleId)) {
+        readArticles.push(articleId);
+        localStorage.setItem(READ_ARTICLES_KEY, JSON.stringify(readArticles));
+    }
+}
+
+// 检查文章是否已读
+function isArticleRead(articleId) {
+    const readArticles = getReadArticles();
+    return readArticles.includes(articleId);
+}
+
 // 初始化文章详情相关事件
 function initializeArticleDetail() {
     // 点击文章链接时显示详情
@@ -193,6 +217,9 @@ function initializeArticleDetail() {
             const article = getCachedArticle(articleId);
             if (!article) throw new Error('文章数据不存在');
             
+            // 标记文章为已读
+            markArticleAsRead(articleId);
+            
             showArticleDetail(article);
         } catch (error) {
             console.error('文章加载错误:', error);
@@ -205,6 +232,12 @@ function initializeArticleDetail() {
 }
 
 // 导出函数
+window.ArticleDetail = {
+    ...ArticleDetail,
+    isRead: isArticleRead,
+    getReadList: getReadArticles
+};
+
 // 导出文章详情模块
 window.ArticleDetail = ArticleDetail;
 
