@@ -195,13 +195,24 @@ const CORS_PROXIES = [
 ];
 
 // 使用代理获取RSS源内容
-async function fetchWithProxy(url, proxyIndex = 0) {
+async function fetchWithProxy(url, proxyIndex = 0, retryCount = 0) {
+    const MAX_RETRIES = 2; // 每个代理最大重试次数
+    
     if (proxyIndex >= CORS_PROXIES.length) {
-        throw new Error('所有代理服务都失败了');
+        console.warn('所有代理服务都尝试失败，将直接尝试获取原始URL');
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return await response.text();
+        } catch (error) {
+            throw new Error('无法获取RSS源内容：所有尝试都失败了');
+        }
     }
 
     try {
         const proxyUrl = CORS_PROXIES[proxyIndex] + encodeURIComponent(url);
+        console.log(`尝试使用代理服务 ${CORS_PROXIES[proxyIndex]}`);
+        
         const response = await fetch(proxyUrl);
         
         if (!response.ok) {
@@ -219,21 +230,64 @@ async function fetchWithProxy(url, proxyIndex = 0) {
             content = await response.text();
         }
 
-        // 检查内容是否为HTML页面
+        // 检查内容是否为HTML页面或空内容
+        if (!content || content.trim().length === 0) {
+            throw new Error('返回的内容为空');
+        }
         if (content.toLowerCase().includes('<!doctype html>') || content.toLowerCase().includes('<html')) {
             throw new Error('返回的内容是HTML页面，不是有效的RSS/XML格式');
         }
 
+        // 预处理XML内容
+        content = content
+            .replace(/^\s*<\?xml[^>]*\?>\s*/i, '') // 移除现有的XML声明
+            .replace(/^\uFEFF/, '') // 移除BOM
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // 移除控制字符
+            .replace(/[\uD800-\uDFFF]/g, '') // 移除无效的Unicode字符
+            .replace(/&(?![a-zA-Z]+;|#[0-9]+;|#x[0-9a-fA-F]+;)/g, '&amp;') // 修复未转义的&符号
+            .replace(/<([a-zA-Z]+)([^>]*)\/>/, '<$1$2></$1>') // 修复自闭合标签
+            .trim();
+
+        // 添加新的XML声明
+        content = '<?xml version="1.0" encoding="UTF-8"?>\n' + content;
+
+        // 验证XML基本结构
+        if (!content.match(/<(rss|feed|rdf:RDF)[^>]*>/i)) {
+            throw new Error('无效的RSS/Atom格式：缺少根元素');
+        }
+
         return content;
     } catch (error) {
-        console.error(`代理服务 ${CORS_PROXIES[proxyIndex]} 失败:`, error);
-        return fetchWithProxy(url, proxyIndex + 1);
+        console.warn(`代理服务 ${CORS_PROXIES[proxyIndex]} 失败:`, error);
+        
+        // 如果当前代理未达到最大重试次数，则重试当前代理
+        if (retryCount < MAX_RETRIES) {
+            console.log(`重试当前代理服务 (${retryCount + 1}/${MAX_RETRIES})`);
+            return await new Promise(resolve => setTimeout(resolve, 1000)) // 延迟1秒后重试
+                .then(() => fetchWithProxy(url, proxyIndex, retryCount + 1));
+        }
+        
+        // 如果当前代理已达到最大重试次数，尝试下一个代理
+        return fetchWithProxy(url, proxyIndex + 1, 0);
     }
 }
 
 async function loadArticles(feed) {
     try {
         console.log(`开始加载RSS源: ${feed.name} (${feed.url})`);        
+        
+        // 首先尝试从缓存中获取文章
+        const cachedArticles = getCachedArticles();
+        if (cachedArticles) {
+            const feedArticles = cachedArticles.filter(article => article.feedName === feed.name);
+            if (feedArticles.length > 0) {
+                console.log('从缓存中获取文章成功');
+                renderArticleList(feed.name, feedArticles);
+                return;
+            }
+        }
+
+        // 如果缓存中没有数据，则从RSS源获取
         let xmlContent = await fetchWithProxy(feed.url);
         
         // 移除可能存在的BOM标记和无效字符
@@ -268,7 +322,8 @@ async function loadArticles(feed) {
         const articles = [];
 
         // 检测RSS格式并处理命名空间
-        const isAtom = xml.querySelector('feed');
+        const atomNS = 'http://www.w3.org/2005/Atom';
+        const isAtom = xml.getElementsByTagNameNS(atomNS, 'feed').length > 0 || xml.querySelector('feed');
         const isRSS1 = xml.querySelector('RDF');
         const isRSS2 = xml.querySelector('rss');
         
@@ -512,7 +567,7 @@ $('#saveFeedBtn').click(async () => {
     const editIndex = $('#addFeedForm').data('editIndex');
     const favicon = await getFavicon(url);
     
-    if (typeof editIndex !== 'undefined') {
+    if (editIndex >= 0) {
         // 更新现有RSS源
         feeds[editIndex] = { name, url, favicon };
     } else {
@@ -522,7 +577,11 @@ $('#saveFeedBtn').click(async () => {
     
     saveFeeds(feeds);
     renderFeedList();
+    // 清除文章缓存并重新加载所有文章
+    localStorage.removeItem(ARTICLES_CACHE_KEY);
+    loadAllArticles();
     addFeedModal.hide();
+    $('#addFeedForm')[0].reset();
 });
 
 // 导出RSS源
@@ -664,41 +723,46 @@ function initializeSidebarState() {
 // 加载所有RSS源的文章
 async function loadAllArticles() {
     const feeds = getFeeds();
+    const articleList = $('#articleList');
+    articleList.empty();
+
     if (feeds.length === 0) {
-        $('#articleList').empty();
+        articleList.html('<div class="text-center text-muted p-3">暂无订阅源，请先添加RSS源</div>');
         return;
     }
 
+    // 首先尝试从缓存中获取文章
+    const cachedArticles = getCachedArticles();
+    if (cachedArticles && cachedArticles.length > 0) {
+        console.log('从缓存中获取所有文章成功');
+        renderArticleList(null, cachedArticles);
+        return;
+    }
+
+    // 显示加载提示
+    articleList.html('<div class="text-center p-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">加载中...</span></div><div class="mt-2 text-muted">正在加载文章...</div></div>');
+
     try {
-        // 获取所有订阅源的文章
+        // 并行加载所有订阅源的文章
         const allArticles = [];
-        for (const feed of feeds) {
+        await Promise.all(feeds.map(async (feed) => {
             try {
-                console.log(`开始加载RSS源: ${feed.name} (${feed.url})`);
-                let xmlContent = await fetchWithProxy(feed.url);
+                const xmlContent = await fetchWithProxy(feed.url);
                 
-                // 移除可能存在的BOM标记和无效字符
-                xmlContent = xmlContent.replace(/^\uFEFF|[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, '');
+                // 预处理XML内容
+                const cleanXmlContent = xmlContent
+                    .replace(/^\uFEFF/, '') // 移除BOM
+                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // 移除控制字符
+                    .trim(); // 移除前后空白字符
                 
-                // 检查并添加XML声明
-                if (!xmlContent.trim().startsWith('<?xml')) {
-                    xmlContent = '<?xml version="1.0" encoding="UTF-8"?>' + xmlContent;
-                }
-
-                // 尝试修复常见的XML问题
-                xmlContent = xmlContent
-                    .replace(/&(?![a-zA-Z]+;|#[0-9]+;|#x[0-9a-fA-F]+;)/g, '&amp;')
-                    .replace(/<([a-zA-Z]+)([^>]*)\/>/, '<$1$2></$1>')
-                    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-                    .replace(/[\uD800-\uDFFF]/g, '');
-                
+                // 尝试解析XML内容
                 const parser = new DOMParser();
-                const xml = parser.parseFromString(xmlContent, 'text/xml');
-
-                // 检查XML解析错误
+                const xml = parser.parseFromString(cleanXmlContent, 'text/xml');
+                
+                // 检查解析是否成功
                 const parserError = xml.querySelector('parsererror');
                 if (parserError) {
-                    throw new Error('XML解析错误：' + parserError.textContent);
+                    throw new Error(`XML解析错误：${parserError.textContent}`);
                 }
 
                 const articles = [];
@@ -708,110 +772,132 @@ async function loadAllArticles() {
 
                 if (isAtom) {
                     // 处理Atom格式
-                    const atomNS = 'http://www.w3.org/2005/Atom';
-                    const entries = xml.getElementsByTagNameNS(atomNS, 'entry') || xml.getElementsByTagName('entry');
+                    const entries = xml.getElementsByTagName('entry');
                     Array.from(entries).forEach(entry => {
-                        const links = entry.getElementsByTagNameNS(atomNS, 'link') || entry.getElementsByTagName('link');
-                        let link = '';
-                        
-                        for (let i = 0; i < links.length; i++) {
-                            const linkEl = links[i];
-                            const rel = linkEl.getAttribute('rel') || '';
-                            if (rel === 'alternate' || !rel) {
-                                link = linkEl.getAttribute('href');
-                                if (link) break;
-                            }
-                        }
-                        
-                        if (!link && links.length > 0) {
-                            for (let i = 0; i < links.length; i++) {
-                                link = links[i].getAttribute('href');
-                                if (link) break;
-                            }
-                        }
-
-                        const titleEl = entry.getElementsByTagNameNS(atomNS, 'title')[0] || entry.getElementsByTagName('title')[0];
-                        const titleText = titleEl?.textContent || '无标题';
-                        const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = titleText;
-                        const title = tempDiv.textContent || tempDiv.innerText || '无标题';
-
-                        const updatedEl = entry.getElementsByTagNameNS(atomNS, 'updated')[0] || entry.getElementsByTagName('updated')[0];
-                        const publishedEl = entry.getElementsByTagNameNS(atomNS, 'published')[0] || entry.getElementsByTagName('published')[0];
-                        const modifiedEl = entry.getElementsByTagNameNS(atomNS, 'modified')[0] || entry.getElementsByTagName('modified')[0];
-                        const updated = updatedEl?.textContent || publishedEl?.textContent || modifiedEl?.textContent;
-
-                        // 获取文章内容
-                        const contentEl = entry.getElementsByTagNameNS(atomNS, 'content')[0] || entry.getElementsByTagName('content')[0];
-                        let content = '';
-                        if (contentEl) {
-                            if (contentEl.getAttribute('type') === 'html' || contentEl.getAttribute('type') === 'xhtml') {
-                                content = contentEl.innerHTML || contentEl.textContent;
-                            } else {
-                                content = contentEl.textContent;
-                            }
-                        }
-
-                        articles.push({
-                            title: title.trim(),
-                            link: link,
-                            content: content,
-                            pubDate: new Date(updated || Date.now()).getTime(),
-                            feedName: feed.name,
-                            feedTitle: feed.name,
-                            favicon: feed.favicon
-                        });
+                        const article = parseAtomEntry(entry, feed);
+                        if (article) articles.push(article);
                     });
                 } else if (isRSS1 || isRSS2) {
-                    // 处理RSS 1.0和2.0格式
+                    // 处理RSS格式
                     const items = xml.getElementsByTagName('item');
                     Array.from(items).forEach(item => {
-                        const title = item.getElementsByTagName('title')[0]?.textContent || '无标题';
-                        const link = item.getElementsByTagName('link')[0]?.textContent || '';
-                        const pubDate = item.getElementsByTagName('pubDate')[0]?.textContent ||
-                                       item.getElementsByTagName('dc:date')[0]?.textContent ||
-                                       item.getElementsByTagName('date')[0]?.textContent;
-
-                        let content = '';
-                        const contentEncoded = item.getElementsByTagName('content:encoded')[0];
-                        const description = item.getElementsByTagName('description')[0];
-                        const dcContent = item.getElementsByTagName('dc:content')[0];
-                        const contentEl = item.getElementsByTagName('content')[0];
-
-                        if (contentEncoded) {
-                            content = contentEncoded.textContent;
-                        } else if (description) {
-                            content = description.textContent;
-                        } else if (dcContent) {
-                            content = dcContent.textContent;
-                        } else if (contentEl) {
-                            content = contentEl.textContent;
-                        }
-
-                        articles.push({
-                            title: title.trim(),
-                            link: link,
-                            content: content,
-                            pubDate: new Date(pubDate || Date.now()).getTime(),
-                            feedName: feed.name,
-                            feedTitle: feed.name,
-                            favicon: feed.favicon
-                        });
+                        const article = parseRSSItem(item, feed);
+                        if (article) articles.push(article);
                     });
                 }
 
                 allArticles.push(...articles);
             } catch (error) {
-                console.error(`加载RSS源 ${feed.name} 失败:`, error);
+                console.error(`加载${feed.name}的文章失败:`, error);
+            }
+        }));
+
+        // 按发布时间排序
+        allArticles.sort((a, b) => b.pubDate - a.pubDate);
+
+        // 缓存所有文章
+        if (allArticles.length > 0) {
+            cacheArticles(allArticles);
+        }
+
+        // 渲染文章列表
+        if (allArticles.length > 0) {
+            renderArticleList(null, allArticles);
+        } else {
+            articleList.html('<div class="text-center text-muted p-3">暂无文章</div>');
+        }
+    } catch (error) {
+        console.error('加载文章失败:', error);
+        articleList.html(`<div class="text-center text-danger p-3">加载文章失败: ${error.message}</div>`);
+    }
+}
+
+// 解析Atom格式的文章条目
+function parseAtomEntry(entry, feed) {
+    try {
+        const title = entry.getElementsByTagName('title')[0]?.textContent || '无标题';
+        const links = entry.getElementsByTagName('link');
+        let link = '';
+        
+        // 获取文章链接
+        for (let i = 0; i < links.length; i++) {
+            const linkEl = links[i];
+            const rel = linkEl.getAttribute('rel') || '';
+            if (rel === 'alternate' || !rel) {
+                link = linkEl.getAttribute('href');
+                if (link) break;
             }
         }
 
-        // 按发布时间排序所有文章
-        allArticles.sort((a, b) => b.pubDate - a.pubDate);
-        renderArticleList('全部文章', allArticles.slice(0, 20));
+        // 获取发布时间
+        const updated = entry.getElementsByTagName('updated')[0]?.textContent ||
+                       entry.getElementsByTagName('published')[0]?.textContent ||
+                       entry.getElementsByTagName('modified')[0]?.textContent;
+
+        // 获取作者
+        const authorEl = entry.getElementsByTagName('author')[0];
+        const author = authorEl ? authorEl.getElementsByTagName('name')[0]?.textContent : null;
+
+        // 获取内容
+        const contentEl = entry.getElementsByTagName('content')[0];
+        let content = '';
+        if (contentEl) {
+            content = contentEl.textContent;
+        }
+
+        return {
+            title: title.trim(),
+            link: link,
+            content: content,
+            pubDate: new Date(updated || Date.now()).getTime(),
+            author: author,
+            feedName: feed.name,
+            feedTitle: feed.name,
+            favicon: feed.favicon
+        };
     } catch (error) {
-        console.error('加载文章失败:', error);
-        alert('加载文章失败，请检查网络连接或RSS源是否可用');
+        console.error('解析Atom条目失败:', error);
+        return null;
+    }
+}
+
+// 解析RSS格式的文章条目
+function parseRSSItem(item, feed) {
+    try {
+        const title = item.getElementsByTagName('title')[0]?.textContent || '无标题';
+        const link = item.getElementsByTagName('link')[0]?.textContent || '';
+        const pubDate = item.getElementsByTagName('pubDate')[0]?.textContent ||
+                       item.getElementsByTagName('dc:date')[0]?.textContent ||
+                       item.getElementsByTagName('date')[0]?.textContent;
+
+        // 获取作者
+        const author = item.getElementsByTagName('author')[0]?.textContent ||
+                      item.getElementsByTagName('dc:creator')[0]?.textContent;
+
+        // 获取内容
+        let content = '';
+        const contentEncoded = item.getElementsByTagName('content:encoded')[0];
+        const description = item.getElementsByTagName('description')[0];
+
+        if (contentEncoded) {
+            content = contentEncoded.textContent;
+        } else if (description) {
+            content = description.textContent;
+        }
+
+        return {
+            title: title.trim(),
+            link: link,
+            content: content,
+            pubDate: new Date(pubDate || Date.now()).getTime(),
+            author: author,
+            feedName: feed.name,
+            feedTitle: feed.name,
+            favicon: feed.favicon
+        };
+    } catch (error) {
+        console.error('解析RSS条目失败:', error);
+        return null;
     }
 }
 
