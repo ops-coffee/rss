@@ -137,12 +137,43 @@ function renderFeedList() {
         e.stopPropagation();
         const index = $(this).data('index');
         const feeds = getFeeds();
-        feeds.splice(index, 1);
-        saveFeeds(feeds);
-        renderFeedList();
-        // 清除文章缓存并重新加载
-        localStorage.removeItem(ARTICLES_CACHE_KEY);
-        loadAllArticles();
+        const feed = feeds[index];
+
+        // 显示确认对话框
+        if (confirm(`确定要删除订阅源「${feed.name}」吗？删除后将清除该订阅源的所有缓存数据。`)) {
+            // 删除订阅源
+            feeds.splice(index, 1);
+            saveFeeds(feeds);
+
+            // 清理相关的本地存储数据
+            // 1. 清除文章列表缓存
+            localStorage.removeItem(ARTICLES_CACHE_KEY);
+
+            // 2. 清除该订阅源的所有文章缓存
+            const cacheKeys = Object.keys(localStorage);
+            cacheKeys.forEach(key => {
+                if (key.startsWith(`${ARTICLE_CACHE_KEY}_`)) {
+                    const cache = JSON.parse(localStorage.getItem(key));
+                    if (cache?.article?.feedName === feed.name) {
+                        localStorage.removeItem(key);
+                    }
+                }
+            });
+
+            // 3. 更新已读文章列表，移除该订阅源的文章
+            const readArticles = JSON.parse(localStorage.getItem(READ_ARTICLES_KEY) || '[]');
+            const updatedReadArticles = readArticles.filter(articleId => {
+                const cache = localStorage.getItem(`${ARTICLE_CACHE_KEY}_${articleId}`);
+                if (!cache) return false;
+                const article = JSON.parse(cache)?.article;
+                return article?.feedName !== feed.name;
+            });
+            localStorage.setItem(READ_ARTICLES_KEY, JSON.stringify(updatedReadArticles));
+
+            // 重新渲染订阅源列表并加载文章
+            renderFeedList();
+            loadAllArticles();
+        }
     });
 
     // 点击RSS源时加载其文章
