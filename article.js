@@ -31,8 +31,26 @@ function getCachedArticle(url) {
 
 // 缓存文章详情
 function cacheArticle(url, article) {
+    // 创建文章数据的副本，避免修改原始数据
+    const articleToCache = { ...article };
+
+    // 处理Atom格式的content字段
+    if (articleToCache.content) {
+        if (typeof articleToCache.content === 'object') {
+            // 处理Atom格式的content对象
+            if (articleToCache.content._) {
+                // 如果存在文本内容
+                articleToCache.content = articleToCache.content._;
+            } else if (articleToCache.content.type === 'html' && articleToCache.content.$) {
+                // 如果是HTML格式的内容
+                articleToCache.content = articleToCache.content.$;
+            }
+        }
+        // 如果content是字符串，保持原样
+    }
+
     const cache = {
-        article,
+        article: articleToCache,
         timestamp: Date.now()
     };
     localStorage.setItem(`${ARTICLE_CACHE_KEY}_${url}`, JSON.stringify(cache));
@@ -72,7 +90,14 @@ function showArticleDetail(article) {
         const author = article.author ? decodeHtmlEntities(article.author) : null;
         const pubDate = formatDate(article.pubDate);
         const source = decodeHtmlEntities(article.feedTitle || article.feedName) || '未知来源';
-        const content = article['content:encoded'] || article.content || article.description || article.summary || '暂无内容';
+        // 优化内容获取逻辑，优先处理Atom格式的content字段
+        let content = '';
+        if (article.content && typeof article.content === 'object' && article.content._) {
+            // Atom格式的content字段
+            content = article.content._;
+        } else {
+            content = article['content:encoded'] || article.content || article.description || article.summary || '暂无内容';
+        }
         const link = article.link || null;
 
         // 高亮对应的订阅源

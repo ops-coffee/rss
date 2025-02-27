@@ -281,10 +281,25 @@ async function loadArticles(feed) {
                 const modifiedEl = entry.getElementsByTagNameNS(atomNS, 'modified')[0] || entry.getElementsByTagName('modified')[0];
                 const updated = updatedEl?.textContent || publishedEl?.textContent || modifiedEl?.textContent;
 
+                // 获取文章内容
+                const contentEl = entry.getElementsByTagNameNS(atomNS, 'content')[0] || entry.getElementsByTagName('content')[0];
+                let content = '';
+                if (contentEl) {
+                    if (contentEl.getAttribute('type') === 'html' || contentEl.getAttribute('type') === 'xhtml') {
+                        content = contentEl.innerHTML || contentEl.textContent;
+                    } else {
+                        content = contentEl.textContent;
+                    }
+                }
+
                 articles.push({
                     title: title.trim(),
                     link: link,
-                    pubDate: new Date(updated || Date.now()).getTime()
+                    content: content,
+                    pubDate: new Date(updated || Date.now()).getTime(),
+                    feedName: feed.name,
+                    feedTitle: feed.name,
+                    favicon: feed.favicon
                 });
             });
         } else if (isRSS1 || isRSS2) {
@@ -318,7 +333,10 @@ async function loadArticles(feed) {
                     title: title.trim(),
                     link: link,
                     content: content,
-                    pubDate: new Date(pubDate || Date.now()).getTime()
+                    pubDate: new Date(pubDate || Date.now()).getTime(),
+                    feedName: feed.name,
+                    feedTitle: feed.name,
+                    favicon: feed.favicon
                 });
             });
         } else {
@@ -403,10 +421,7 @@ function renderArticleList(feedName, articles) {
             <li class="list-group-item article-item" data-article-id="${cleanArticle.link}">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="d-flex align-items-center">
-                        <img src="${favicon}" 
-                             alt="favicon" 
-                             class="me-2" 
-                             style="width: 16px; height: 16px;">
+                        <img src="${favicon}" alt="favicon" class="me-2" style="width: 16px; height: 16px;">
                         <div class="article-info">
                             <div class="article-title">${cleanArticle.title}</div>
                             <div class="article-meta text-muted small">
@@ -523,6 +538,28 @@ $('#importBtn').click(() => {
 // 初始化页面
 function initializePage() {
     renderFeedList();
+    loadAllArticles();
+
+    // 绑定添加RSS源按钮事件
+    $('#addFeedBtn').click(() => {
+        $('#addFeedForm').data('editIndex', -1);
+        $('#addFeedModal .modal-title').text('添加RSS源');
+        $('#saveFeedBtn').text('保存');
+        $('#feedName').val('');
+        $('#feedUrl').val('');
+        addFeedModal.show();
+    });
+
+    // 绑定移动端显示侧边栏按钮事件
+    $('#showSidebarBtn').click(() => {
+        $('.feed-list-container').addClass('show');
+    });
+
+    // 绑定移动端关闭侧边栏按钮事件
+    $('#closeSidebarBtn').click(() => {
+        $('.feed-list-container').removeClass('show');
+    });
+
     const feeds = getFeeds();
     if (feeds.length > 0) {
         loadAllArticles();
@@ -573,6 +610,16 @@ function initializeSidebarState() {
     // 移动端导航栏按钮
     document.querySelector('.navbar-toggler')?.addEventListener('click', () => {
         document.querySelector('.feed-list-container').classList.toggle('show');
+    });
+
+    // 移动端显示侧边栏按钮
+    document.getElementById('showSidebarBtn')?.addEventListener('click', () => {
+        document.querySelector('.feed-list-container').style.left = '0';
+    });
+
+    // 移动端关闭侧边栏按钮
+    document.getElementById('closeSidebarBtn')?.addEventListener('click', () => {
+        document.querySelector('.feed-list-container').style.left = '-100%';
     });
 }
 
@@ -656,11 +703,25 @@ async function loadAllArticles() {
                         const modifiedEl = entry.getElementsByTagNameNS(atomNS, 'modified')[0] || entry.getElementsByTagName('modified')[0];
                         const updated = updatedEl?.textContent || publishedEl?.textContent || modifiedEl?.textContent;
 
+                        // 获取文章内容
+                        const contentEl = entry.getElementsByTagNameNS(atomNS, 'content')[0] || entry.getElementsByTagName('content')[0];
+                        let content = '';
+                        if (contentEl) {
+                            if (contentEl.getAttribute('type') === 'html' || contentEl.getAttribute('type') === 'xhtml') {
+                                content = contentEl.innerHTML || contentEl.textContent;
+                            } else {
+                                content = contentEl.textContent;
+                            }
+                        }
+
                         articles.push({
                             title: title.trim(),
                             link: link,
+                            content: content,
                             pubDate: new Date(updated || Date.now()).getTime(),
-                            feedName: feed.name
+                            feedName: feed.name,
+                            feedTitle: feed.name,
+                            favicon: feed.favicon
                         });
                     });
                 } else if (isRSS1 || isRSS2) {
@@ -694,7 +755,9 @@ async function loadAllArticles() {
                             link: link,
                             content: content,
                             pubDate: new Date(pubDate || Date.now()).getTime(),
-                            feedName: feed.name
+                            feedName: feed.name,
+                            feedTitle: feed.name,
+                            favicon: feed.favicon
                         });
                     });
                 }

@@ -16,24 +16,20 @@
     <div class="container-fluid">
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container-fluid">
-                <a class="navbar-brand" href="#">简约RSS阅读器</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
+                <button class="btn btn-sm btn-outline-light d-md-none" id="showSidebarBtn">
+                    <i class="bi bi-list"></i>
                 </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                    </ul>
-                    <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-outline-light" id="addFeedBtn">
-                            <i class="bi bi-plus-lg"></i> 添加
-                        </button>
-                        <button class="btn btn-sm btn-outline-light" id="importBtn">
-                            <i class="bi bi-upload"></i> 导入
-                        </button>
-                        <button class="btn btn-sm btn-outline-light" id="exportBtn">
-                            <i class="bi bi-download"></i> 导出
-                        </button>
-                    </div>
+                <a class="navbar-brand" href="#">简约RSS阅读器</a>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-light" id="addFeedBtn">
+                        <i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline">添加</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-light" id="importBtn">
+                        <i class="bi bi-upload"></i> <span class="d-none d-md-inline">导入</span>
+                    </button>
+                    <button class="btn btn-sm btn-outline-light" id="exportBtn">
+                        <i class="bi bi-download"></i> <span class="d-none d-md-inline">导出</span>
+                    </button>
                 </div>
             </div>
         </nav>
@@ -43,7 +39,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0 d-flex align-items-center">
                         <span id="rss-manage-title">订阅源</span>
-                        <button class="toggle-sidebar-btn btn btn-sm btn-outline-secondary d-md-block">
+                        <button class="toggle-sidebar-btn btn btn-sm btn-outline-secondary d-none d-md-block">
                             <i class="bi bi-chevron-left"></i>
                         </button>
                     </h5>
