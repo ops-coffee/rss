@@ -254,6 +254,71 @@ function initializeArticleDetail() {
             }
         });
     });
+
+    // 显示全部按钮点击事件
+    document.getElementById('showAllBtn').addEventListener('click', () => {
+        // 从localStorage获取所有文章缓存
+        const allArticles = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith(ARTICLE_CACHE_KEY)) {
+                try {
+                    const cache = JSON.parse(localStorage.getItem(key));
+                    if (cache && cache.article) {
+                        allArticles.push(cache.article);
+                    }
+                } catch (error) {
+                    console.error('解析缓存文章失败:', error);
+                }
+            }
+        }
+
+        // 按发布时间降序排序
+        allArticles.sort((a, b) => (b.pubDate || 0) - (a.pubDate || 0));
+
+        // 清空并重新渲染文章列表
+        const articleList = document.getElementById('articleList');
+        articleList.innerHTML = '';
+        articleList.classList.add('list-group');
+        articleList.style.maxHeight = 'calc(100vh - 200px)';
+        articleList.style.overflowY = 'auto';
+        allArticles.forEach(article => {
+            const isRead = isArticleRead(article.id || article.link);
+            const listItem = document.createElement('div');
+            listItem.className = `list-group-item ${isRead ? 'read' : ''}`;
+            listItem.dataset.articleId = article.id || article.link;
+            const pubDate = article.pubDate ? new Date(article.pubDate).toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : '未知时间';
+            const author = article.author ? decodeHtmlEntities(article.author) : null;
+            listItem.innerHTML = `
+                <div class="d-flex w-100 justify-content-between align-items-start">
+                    <div class="article-info flex-grow-1">
+                        <h5 class="mb-1 article-title text-break">${article.title || '无标题'}</h5>
+                        <div class="article-meta">
+                            ${author ? `
+                                <small class="text-muted me-3">
+                                    <i class="bi bi-person"></i> ${author}
+                                </small>
+                            ` : ''}
+                            <small class="text-muted me-3">
+                                <i class="bi bi-calendar"></i> ${pubDate}
+                            </small>
+                            <small class="text-muted">
+                                <i class="bi bi-rss"></i> ${article.feedName || '未知来源'}
+                            </small>
+                        </div>
+                    </div>
+                    ${isRead ? '<span class="badge bg-secondary ms-2">已读</span>' : ''}
+                </div>
+            `;
+            articleList.appendChild(listItem);
+        });
+    });
 }
 
 // 导出文章详情模块

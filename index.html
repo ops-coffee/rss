@@ -40,13 +40,13 @@
                         <span id="rss-manage-title">订阅源</span>
                     </h5>
                     <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-outline-secondary" id="addFeedBtn">
+                        <button class="btn btn-sm btn-outline-secondary" id="addFeedBtn" title="添加RSS源">
                             <i class="bi bi-plus-lg"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary" id="importBtn">
+                        <button class="btn btn-sm btn-outline-secondary" id="importBtn" title="导入RSS源">
                             <i class="bi bi-upload"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-secondary" id="exportBtn">
+                        <button class="btn btn-sm btn-outline-secondary" id="exportBtn" title="导出RSS源">
                             <i class="bi bi-download"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-secondary d-md-none" id="closeSidebarBtn">
@@ -66,12 +66,15 @@
                     <div class="card-header">
                         <div class="d-flex justify-content-between align-items-center">
                             <h5 class="card-title mb-0">文章列表</h5>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-outline-secondary" id="markAllReadBtn">
-                                    <i class="bi bi-check2-all"></i> 全部已读
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-outline-secondary" id="markAllReadBtn" title="全部已读">
+                                    <i class="bi bi-check2-all"></i>
                                 </button>
-                                <button class="btn btn-outline-secondary" id="refreshBtn">
-                                    <i class="bi bi-arrow-clockwise"></i> 刷新
+                                <button class="btn btn-outline-secondary" id="showAllBtn" title="全部显示">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" id="refreshBtn" title="刷新">
+                                    <i class="bi bi-arrow-clockwise"></i>
                                 </button>
                             </div>
                         </div>
