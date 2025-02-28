@@ -33,12 +33,10 @@ body {
 .navbar .container-fluid {
     display: flex;
     align-items: center;
-    gap: 1rem;
 }
 
 .navbar .navbar {
     background-color: var(--primary-color);
-    padding: 1rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -56,7 +54,6 @@ body {
 
 .navbar .ms-auto {
     display: flex;
-    gap: 1rem;
     align-items: center;
 }
 
@@ -425,7 +422,6 @@ body {
 
     .feed-list-container .card-header .btn-group {
         display: flex;
-        gap: 0.5rem;
         margin-left: 0;
     }
 
