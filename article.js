@@ -243,6 +243,17 @@ function initializeArticleDetail() {
         }
         backToList();
     });
+    // 全部已读按钮点击事件
+    document.getElementById('markAllReadBtn').addEventListener('click', () => {
+        const articleItems = document.querySelectorAll('#articleList .list-group-item');
+        articleItems.forEach(item => {
+            const articleId = item.dataset.articleId;
+            if (articleId) {
+                markArticleAsRead(articleId);
+                item.remove(); // 标记为已读后移除文章
+            }
+        });
+    });
 }
 
 // 导出文章详情模块
