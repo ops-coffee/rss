@@ -12,7 +12,10 @@ body {
     background-color: var(--secondary-color);
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    overflow: hidden;
+    height: 100vh;
+    position: fixed;
+    width: 100%;
 }
 
 .container-fluid {
@@ -25,6 +28,77 @@ body {
     margin-bottom: 0;
     padding-left: 1rem;
     padding-right: 1rem;
+}
+
+.navbar .container-fluid {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.navbar .navbar {
+    background-color: var(--primary-color);
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar .navbar-brand {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    text-decoration: none;
+    transition: opacity 0.3s ease;
+}
+
+.navbar .navbar-brand:hover {
+    opacity: 0.9;
+}
+
+.navbar .ms-auto {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.navbar .ms-auto a {
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    border: none;
+}
+
+.navbar .ms-auto a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.navbar .toggle-sidebar-btn {
+    padding: 0.5rem;
+    color: white;
+    border: none;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.navbar .toggle-sidebar-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.navbar .btn-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.navbar .toggle-sidebar-btn {
+    margin-right: 0.5rem;
 }
 
 .navbar-brand {
@@ -200,29 +274,28 @@ body {
         position: fixed;
         left: -100%;
         top: 60px;
-        width: 100%;
+        width: 80%;
         height: calc(100vh - 60px);
         background: white;
-        transition: left 0.3s ease;
         z-index: 1000;
+        transition: left 0.3s ease;
         padding: 1rem;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
     }
 
     .feed-list-container .card {
-        flex: 1;
-        overflow-y: auto;
+        height: 100%;
         margin: 0;
+        border-radius: 0;
+        box-shadow: 2px 0 5px rgba(0,0,0,0.1);
     }
 
-    .feed-list-container .card-body {
-        height: calc(100% - 56px);
-        overflow-y: auto;
+    .content-container {
+        margin-left: 0;
+        padding: 1rem;
     }
+}
 
-    .navbar-nav {
+.navbar-nav {
         flex-direction: row;
     }
 
@@ -276,7 +349,6 @@ body {
         opacity: 1;
         animation: spin 1s linear infinite;
     }
-}
 
 /* 美化滚动条 */
 ::-webkit-scrollbar {
@@ -312,12 +384,8 @@ body {
         background: white;
         z-index: 1000;
         box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        transition: width 0.3s ease;
         padding: 1rem;
-    }
-
-    .feed-list-container.collapsed {
-        width: 80px;
+        transition: none;
     }
 
     .feed-list-container .card {
@@ -348,88 +416,24 @@ body {
         background-color: #fff;
     }
 
+    .feed-list-container .card-header .card-title {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 0;
+    }
+
     .feed-list-container .card-header .btn-group {
-        margin-left: auto;
         display: flex;
         gap: 0.5rem;
-    }
-
-    .feed-list-container .card-title {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin: 0;
-        width: 100%;
-    }
-
-    .feed-list-container .toggle-sidebar-btn {
-        background: none;
-        border: none;
-        padding: 0;
-        margin-left: auto;
-        color: var(--text-color);
-        cursor: pointer;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .feed-list-container .toggle-sidebar-btn:hover {
-        color: var(--primary-color);
-    }
-
-    .feed-list-container.collapsed #rss-manage-title {
-        display: none;
-    }
-
-    .feed-list-container.collapsed .card-title span,
-    .feed-list-container.collapsed .card-title h5 {
-        display: none;
-    }
-
-    .feed-list-container.collapsed .feed-title,
-    .feed-list-container.collapsed .feed-count {
-        display: none;
-    }
-
-    .feed-list-container.collapsed .feed-icon {
-        margin: 0;
-        width: 24px;
-        height: 24px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        z-index: 1;
-    }
-
-    .feed-list-container.collapsed .list-group-item {
-        padding: 0.5rem;
-        display: flex;
-        justify-content: center;
-        position: relative;
-    }
-
-    .feed-list-container.collapsed .toggle-sidebar-btn {
-        transform: rotate(180deg);
-        margin: 0;
-        position: relative;
-        left: 0;
-        z-index: 2;
+        margin-left: 0;
     }
 
     .content-container {
         margin-left: 300px;
-        transition: margin-left 0.3s ease;
         display: flex;
         gap: 1rem;
         padding: 1rem;
-    }
-
-    .content-container.sidebar-collapsed {
-        margin-left: 80px;
     }
 
     .article-list-view {

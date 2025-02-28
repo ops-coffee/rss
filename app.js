@@ -648,19 +648,20 @@ function initializePage() {
     });
 
     // 绑定移动端显示侧边栏按钮事件
-    $('#showSidebarBtn').click(() => {
-        $('.feed-list-container').addClass('show');
+    $('.toggle-sidebar-btn').click(() => {
+        if (window.innerWidth <= 768) {
+            const feedListContainer = $('.feed-list-container');
+            const currentLeft = feedListContainer.css('left');
+            feedListContainer.css('left', currentLeft === '0px' ? '-100%' : '0');
+        }
     });
 
-    // 绑定移动端关闭侧边栏按钮事件
+    // 移动端关闭侧边栏
     $('#closeSidebarBtn').click(() => {
-        $('.feed-list-container').removeClass('show');
+        if (window.innerWidth <= 768) {
+            $('.feed-list-container').css('left', '-100%');
+        }
     });
-
-    const feeds = getFeeds();
-    if (feeds.length > 0) {
-        loadAllArticles();
-    }
 }
 
 // 侧边栏折叠状态的本地存储key
@@ -681,6 +682,10 @@ function initializeSidebarState() {
     if (isCollapsed) {
         feedListContainer.classList.add('collapsed');
         contentContainer.classList.add('sidebar-collapsed');
+        // 初始化时设置正确的图标
+        const icon = toggleSidebarBtn.querySelector('i');
+        icon.classList.remove('bi-list');
+        icon.classList.add('bi-chevron-right');
     }
 
     // 绑定侧边栏切换按钮事件
@@ -693,11 +698,11 @@ function initializeSidebarState() {
         // 更新折叠按钮图标
         const icon = toggleSidebarBtn.querySelector('i');
         if (feedListContainer.classList.contains('collapsed')) {
-            icon.classList.remove('bi-chevron-left');
+            icon.classList.remove('bi-list');
             icon.classList.add('bi-chevron-right');
         } else {
             icon.classList.remove('bi-chevron-right');
-            icon.classList.add('bi-chevron-left');
+            icon.classList.add('bi-list');
         }
 
         // 保存当前状态到本地存储

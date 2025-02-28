@@ -16,20 +16,13 @@
     <div class="container-fluid">
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container-fluid">
-                <button class="btn btn-sm btn-outline-light d-md-none" id="showSidebarBtn">
+                <button class="toggle-sidebar-btn btn btn-sm btn-outline-light d-md-none">
                     <i class="bi bi-list"></i>
                 </button>
                 <a class="navbar-brand" href="#">简约RSS阅读器</a>
-                <div class="btn-group" role="group">
-                    <button class="btn btn-sm btn-outline-light" id="addFeedBtn">
-                        <i class="bi bi-plus-lg"></i> <span class="d-none d-md-inline">添加</span>
-                    </button>
-                    <button class="btn btn-sm btn-outline-light" id="importBtn">
-                        <i class="bi bi-upload"></i> <span class="d-none d-md-inline">导入</span>
-                    </button>
-                    <button class="btn btn-sm btn-outline-light" id="exportBtn">
-                        <i class="bi bi-download"></i> <span class="d-none d-md-inline">导出</span>
-                    </button>
+                <div class="ms-auto">
+                    <a href="https://blog.ops-coffee.cn/s/ai-powered-project-creation-from-start-to-finish.html" class="btn btn-sm btn-outline-light" target="_blank">介绍</a>
+                    <a href="https://blog.ops-coffee.cn" class="btn btn-sm btn-outline-light" target="_blank">博客</a>
                 </div>
             </div>
         </nav>
@@ -39,13 +32,21 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0 d-flex align-items-center">
                         <span id="rss-manage-title">订阅源</span>
-                        <button class="toggle-sidebar-btn btn btn-sm btn-outline-secondary d-none d-md-block">
-                            <i class="bi bi-chevron-left"></i>
-                        </button>
                     </h5>
-                    <button class="btn btn-sm btn-outline-secondary d-md-none" id="closeSidebarBtn">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-secondary" id="addFeedBtn">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="importBtn">
+                            <i class="bi bi-upload"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" id="exportBtn">
+                            <i class="bi bi-download"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary d-md-none" id="closeSidebarBtn">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
                     <ul class="list-group" id="feedList"></ul>
