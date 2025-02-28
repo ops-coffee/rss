@@ -914,9 +914,79 @@ function initializeRefreshButton() {
     });
 }
 
+// 初始化Web Worker
+let feedWorker;
+
+function initializeFeedWorker() {
+    if ('serviceWorker' in navigator) {
+        feedWorker = new Worker('worker.js');
+
+        feedWorker.onmessage = (e) => {
+            const { type, message } = e.data;
+            if (type === 'update') {
+                // 当发现新文章时，刷新文章列表
+                loadArticles();
+            } else if (type === 'error') {
+                console.error('Worker错误:', message);
+            }
+        };
+
+        feedWorker.onerror = (error) => {
+            console.error('Worker发生错误:', error);
+        };
+    }
+}
+
+// 手动触发检查更新
+function checkFeedUpdates() {
+    if (feedWorker) {
+        feedWorker.postMessage('check');
+    }
+}
+
+// 初始化Web Worker
+const worker = new Worker('worker.js');
+
+// 监听Worker消息
+worker.addEventListener('message', (e) => {
+    const { type, data, message } = e.data;
+
+    switch (type) {
+        case 'getFeeds':
+            // 发送订阅源数据给Worker
+            const feeds = JSON.parse(localStorage.getItem('feeds') || '[]');
+            worker.postMessage({ type: 'feedsData', data: feeds });
+            break;
+
+        case 'getArticlesCache':
+            // 发送文章缓存数据给Worker
+            const articlesCache = JSON.parse(localStorage.getItem('articles_cache') || '{}');
+            worker.postMessage({ type: 'articlesCacheData', data: articlesCache });
+            break;
+
+        case 'updateArticlesCache':
+            // 更新文章缓存
+            localStorage.setItem('articles_cache', JSON.stringify(data));
+            // 更新UI
+            updateArticleList();
+            break;
+
+        case 'update':
+            console.log(message);
+            break;
+
+        case 'error':
+            console.error(message);
+            break;
+    }
+});
+
+// 导出Worker实例
+window.RSSWorker = worker;
 $(document).ready(() => {
     initializePage();
     ArticleDetail.initialize();
     initializeSidebarState();
     initializeRefreshButton();
+    initializeFeedWorker();
 });
