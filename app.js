@@ -914,6 +914,29 @@ function initializeRefreshButton() {
     });
 }
 
+// 初始化默认订阅源
+function initializeDefaultFeed() {
+    const feeds = getFeeds();
+    if (feeds.length === 0) {
+        const defaultFeeds = [
+            {
+                name: '运维咖啡吧',
+                url: 'https://blog.ops-coffee.cn/feed.xml',
+                favicon: 'https://blog.ops-coffee.cn/favicon.ico'
+            },
+            {
+                name: '科技爱好者周刊',
+                url: 'https://www.ruanyifeng.com/blog/atom.xml',
+                favicon: 'https://www.ruanyifeng.com/favicon.ico'
+            }
+        ];
+        feeds.push(...defaultFeeds);
+        saveFeeds(feeds);
+        return true;
+    }
+    return false;
+}
+
 // 初始化Web Worker
 let feedWorker;
 
@@ -984,6 +1007,10 @@ worker.addEventListener('message', (e) => {
 // 导出Worker实例
 window.RSSWorker = worker;
 $(document).ready(() => {
+    // 检查并初始化默认订阅源
+    if (initializeDefaultFeed()) {
+        console.log('已添加默认订阅源：运维咖啡吧');
+    }
     initializePage();
     ArticleDetail.initialize();
     initializeSidebarState();

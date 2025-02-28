@@ -460,16 +460,12 @@ body {
 }
 
 .feed-list-container .list-group-item .feed-actions {
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
     display: none;
-    gap: 0.5rem;
 }
 
-.feed-list-container:not(.collapsed) .list-group-item:hover .feed-actions {
+.feed-list-container .list-group-item:hover .feed-actions {
     display: flex;
+    gap: 0.5rem;
 }
 
 .feed-list-container .list-group-item .feed-actions .btn {
